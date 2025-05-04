@@ -6,7 +6,7 @@
 //=====[Declaration of public defines]=========================================
 
 //=====[Declaration of public data types]======================================
-
+extern bool coldStart;
 //=====[Declarations (prototypes) of public functions]=========================
 
 void fireAlarmInit();

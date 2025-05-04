@@ -39,7 +39,7 @@ static bool systemBlockedState = OFF;
 
 static bool codeComplete = false;
 static int numberOfCodeChars = 0;
-
+bool coldStart = true;
 //=====[Declarations (prototypes) of private functions]========================
 
 static void userInterfaceMatrixKeypadUpdate();
@@ -99,6 +99,39 @@ void userInterfaceCodeCompleteWrite( bool state )
 
 //=====[Implementations of private functions]==================================
 
+void reportLCDKey23(char keyReleased)
+{
+    if (keyReleased == '2')
+    {
+        //print report of gas detector on line 4 for gas detector state
+        displayCharPositionWrite ( 0,3 ); //char 0 line 4
+        if ( gasDetectorStateRead() ) {
+            displayStringWrite( "Gas Detector State: ON" );
+        } else {
+            displayStringWrite( "Gas Detector State: OFF" );
+        }
+        
+    }else if(keyReleased == '3')
+    {
+        //print report of temp detector on line 4 for temp detector state
+        displayCharPositionWrite ( 0,3 ); //char 0 line 4
+        if ( overTemperatureDetectorStateRead() ) {
+            displayStringWrite( "Ov. Temp. State: ON" );
+        } else {
+            displayStringWrite( "Ov. Temp. State: OFF" );
+        }
+    }
+
+}
+//temperatureSensorReadCelsius() 
+void displaypWarningUpdate(float tempClm32)
+{
+    if(tempClm32>32.0) //warning at 32 degree C
+    {
+        displayCharPositionWrite ( 0,3 ); //char 0 line 4
+        displayStringWrite( "Over Temp. Warning!" );
+    }
+}
 static void userInterfaceMatrixKeypadUpdate()
 {
     static int numberOfHashKeyReleased = 0;
@@ -106,6 +139,7 @@ static void userInterfaceMatrixKeypadUpdate()
 
     if( keyReleased != '\0' ) {
 
+        reportLCDKey23(keyReleased); //main task i
         if( sirenStateRead() && !systemBlockedStateRead() ) {
             if( !incorrectCodeStateRead() ) {
                 codeSequenceFromUserInterface[numberOfCodeChars] = keyReleased;
@@ -142,7 +176,17 @@ static void userInterfaceDisplayInit()
     displayCharPositionWrite ( 0,2 );
     displayStringWrite( "Alarm:" );
 }
+void promptUser2DeactivateAlarm(bool siren)
+{
 
+    if(siren && coldStart)
+    {
+        displayCharPositionWrite ( 10,2 );
+        displayStringWrite( ",Enter Code to" );
+        displayCharPositionWrite ( 0,3 );
+        displayStringWrite( "Deactivate Alarm" );
+    }
+}
 static void userInterfaceDisplayUpdate()
 {
     static int accumulatedDisplayTime = 0;
@@ -169,12 +213,13 @@ static void userInterfaceDisplayUpdate()
 
         displayCharPositionWrite ( 6,2 );
         
-        if ( sirenStateRead() ) {
+        if ( sirenStateRead() ) { //main task ii,iii
             displayStringWrite( "ON " );
         } else {
             displayStringWrite( "OFF" );
         }
-
+        displaypWarningUpdate(temperatureSensorReadCelsius()); //display warning if C>32 on line 4 maint task iv
+        promptUser2DeactivateAlarm(sirenStateRead()); //at cold start
     } else {
         accumulatedDisplayTime =
             accumulatedDisplayTime + SYSTEM_TIME_INCREMENT_MS;        
